@@ -1,8 +1,7 @@
 import { User } from '@/types/user';
 import { ColumnDef } from '@tanstack/react-table';
 import { useQuery } from 'react-query';
-// import { Button } from '@/components/ui/button';
-import { getUsers } from '@/api/user';
+import { getUsers, userQueriesKeys } from '@/api/user';
 import {
   HiArrowsUpDown,
   HiOutlineArrowLeftCircle,
@@ -11,6 +10,7 @@ import {
 // import { RiMore2Fill } from 'react-icons/ri';
 import { Checkbox } from '@/components/ui/checkbox';
 import { moveColumnsDown, moveColumnsUp } from '@/lib/utils';
+import RowActions from '@/components/table/row-actions';
 
 // const columnHelper = createColumnHelper<User>();
 
@@ -191,6 +191,23 @@ const columns: ColumnDef<User>[] = [
       return value.includes(row.getValue(id));
     },
   },
+  {
+    header: 'Actions',
+    cell: ({ row }) => (
+      <RowActions
+        actions={[
+          {
+            type: 'edit',
+          },
+          {
+            type: 'delete',
+          },
+        ]}
+        item={row.original}
+        key={row.id}
+      />
+    ),
+  },
 ];
 
 // export default function UserTable() {
@@ -207,9 +224,15 @@ const columns: ColumnDef<User>[] = [
 //   return <DataTable columns={columns} data={users} />;
 // }
 
+const initialState = {
+  pagination: {
+    pageSize: 12,
+  },
+};
+
 export const useUserTable = () => {
   const { data, isLoading, isError, error } = useQuery<User[], Error>({
-    queryKey: ['author', 'list'],
+    queryKey: userQueriesKeys.list(),
     queryFn: getUsers,
   });
 
@@ -218,7 +241,8 @@ export const useUserTable = () => {
     usersColumns: columns,
     isLoadingUsers: isLoading,
     isErrorUsers: isError,
-    errorUsers: error,
+    usersErrors: error,
+    usersInitialState: initialState,
   };
 };
 

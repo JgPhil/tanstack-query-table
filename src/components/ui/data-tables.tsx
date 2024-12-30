@@ -3,7 +3,7 @@ import { useState } from 'react';
 import {
   ColumnDef,
   ColumnFiltersState,
-  ColumnOrderState, //HERE
+  ColumnOrderState,
   flexRender,
   getCoreRowModel,
   getFacetedRowModel,
@@ -11,6 +11,7 @@ import {
   getFilteredRowModel,
   getPaginationRowModel,
   getSortedRowModel,
+  InitialTableState,
   SortingState,
   useReactTable,
   VisibilityState,
@@ -24,7 +25,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table';
+} from '@/components/table/table';
 
 import {
   DropdownMenu,
@@ -34,19 +35,26 @@ import {
 } from '@/components/ui/dropdown-menu';
 
 import { Button } from '../ui/button';
-import { Input } from '../ui/input';
-import { DataTableFacetedFilter } from '../reusable/faceted-filter';
-import { getDropDownValues } from '@/lib/utils';
 import { DataTablePagination } from '../reusable/pagination-controls';
-import { Separator } from './separator';
+import FacetedFilters from '../table/faceted-filters';
+import { FacetedFiltersColumns } from '@/types/table';
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
+  facetedFilters?: FacetedFiltersColumns;
+  initialState?: InitialTableState;
   // table: TanstackTable<TData>; //HERE
 }
 
-export function DataTable<TData, TValue>({ columns, data }: DataTableProps<TData, TValue>) {
+export function DataTable<TData, TValue>({
+  columns,
+  data,
+  facetedFilters,
+  initialState = {
+    pagination: { pageSize: 10 },
+  },
+}: DataTableProps<TData, TValue>) {
   //STATES:
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
@@ -87,9 +95,7 @@ export function DataTable<TData, TValue>({ columns, data }: DataTableProps<TData
     onColumnVisibilityChange: setColumnVisibility,
 
     //Control pagination. Default is 10
-    initialState: {
-      pagination: { pageSize: 5 },
-    },
+    initialState,
 
     //This can be added to insert custom functions, accessible :table.options.meta.methodName
     meta: {
@@ -106,14 +112,14 @@ export function DataTable<TData, TValue>({ columns, data }: DataTableProps<TData
     <div>
       <div className="flex justify-between py-4">
         <div className="grid grid-cols-1auto-cols-[10rem] grid-flow-col gap-4">
-          <Input
+          {/* <Input
             placeholder="Filter by name"
             value={(table.getColumn('name')?.getFilterValue() as string) ?? ''}
             onChange={event => table.getColumn('name')?.setFilterValue(event.target.value)}
             className="max-w-sm"
-          />
-          <div className="flex-col">
-            {table.getColumn('city') && (
+          /> */}
+          {/* <div className="flex-col"> */}
+          {/* {table.getColumn('city') && (
               <DataTableFacetedFilter
                 column={table.getColumn('city')}
                 title="Ville"
@@ -128,11 +134,21 @@ export function DataTable<TData, TValue>({ columns, data }: DataTableProps<TData
                 title="Nom"
                 options={getDropDownValues(data, 'lastName')}
               />
-            )}
-          </div>
+            )} */}
+          {facetedFilters?.columns?.length && (
+            <FacetedFilters
+              columns={facetedFilters.columns.map(column => ({
+                col: table.getColumn(column.name)!,
+                name: column.name,
+                title: column.title,
+              }))}
+              data={data}
+            />
+          )}
+          {/* </div> */}
 
           {isFiltered && (
-            <Button variant="ghost" onClick={() => table.resetColumnFilters()} className="w-40 p-2">
+            <Button variant="ghost" onClick={() => table.resetColumnFilters()} className="w-20 p-2">
               Clear filters
             </Button>
           )}
@@ -204,7 +220,7 @@ export function DataTable<TData, TValue>({ columns, data }: DataTableProps<TData
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </TableCell>
                   ))}
-                  <Separator orientation="vertical" />
+                  {/* <Separator orientation="vertical" /> */}
                 </TableRow>
               ))
             ) : (

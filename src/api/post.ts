@@ -6,7 +6,6 @@ const BASE_URL = 'http://localhost:3010';
 export const getPosts = async () => {
   const response = await fetch(`${BASE_URL}/posts`);
   const data = await response.json();
-  console.log('🚀 ~ data:', data);
   return data;
 };
 
@@ -22,18 +21,46 @@ export const addPost = async (newPost: Post) => {
   return response.json();
 };
 
+export const postQueriesKeys = {
+  all: () => ['post'],
+  list: () => [...postQueriesKeys.all(), 'list'],
+  byId: (postId: number) => [...postQueriesKeys.all(), postId],
+  // withFilters: (filters: any[]) => [...userQueriesKeys.list(), ...filters],
+  // withSort: (sort: any[]) => [...userQueriesKeys.list(), ...sort],
+};
+
 export const useAddPost = () => {
   const queryClient = useQueryClient();
 
+  const getNextId = (): number => {
+    const posts = queryClient.getQueryData<Post[]>(postQueriesKeys.list());
+    return posts?.length ? Math.max(...posts.map(post => post.id)) + 1 : 1;
+  };
+
   return useMutation({
-    mutationFn: addPost,
-    onMutate: (vars: Post) => {
-      const posts = queryClient.getQueryData<Post[]>('posts') as Post[];
-      const maxId = Math.max(...posts.map(post => post.id));
-      return { ...vars, id: maxId + 1 };
+    mutationFn: async (vars: Post) => {
+      const newPost = { ...vars, id: getNextId() };
+      return addPost(newPost); // Envoie du post avec le bon ID
     },
-    onSuccess: () => queryClient.invalidateQueries(['post', 'list']),
-    onError: e => console.log('error:', e),
+    onMutate: async (vars: Post) => {
+      const newPost = { ...vars, id: getNextId() };
+
+      queryClient.setQueryData<Post[]>(postQueriesKeys.list(), oldPosts =>
+        oldPosts ? [...oldPosts, newPost] : [newPost]
+      );
+
+      return { previousPosts: queryClient.getQueryData<Post[]>(postQueriesKeys.list()) };
+    },
+    onError: (error, vars, context) => {
+      console.error('Error:', error);
+
+      if (context?.previousPosts) {
+        queryClient.setQueryData(postQueriesKeys.list(), context.previousPosts);
+      }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries(postQueriesKeys.list());
+    },
   });
 };
 
